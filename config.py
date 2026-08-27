@@ -57,7 +57,9 @@ FEATURE_COLUMNS = [
     "ndvi",                # (NIR - Red) / (NIR + Red)
     "elevation",           # SRTM DEM elevation in meters
     "slope",               # DEM slope in degrees
-    "aspect"               # DEM aspect in degrees
+    "aspect",              # DEM aspect in degrees
+    "in_gondite_formation",# GSI Sub-surface proxy: Inside Sausar Gondite Belt (1/0)
+    "dist_to_gondite_km"   # GSI Sub-surface proxy: Distance to Gondite boundary in km
 ]
 
 # File Paths - Module 1 (Reserve Mapping)

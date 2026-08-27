@@ -38,6 +38,10 @@ def compute_spectral_indices(df):
     denom = df["B8"] + df["B4"]
     df["ndvi"] = np.where(denom != 0, (df["B8"] - df["B4"]) / denom, 0.0)
     
+    # 6. Sub-surface Proxy: Sausar Group Gondite Geological Formation Membership & Distance
+    from src.geology_layer import add_geology_features
+    df = add_geology_features(df)
+    
     # Round all floating point columns to 4 decimals
     for col in config.FEATURE_COLUMNS:
         if col in df.columns:
