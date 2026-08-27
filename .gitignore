@@ -1,0 +1,42 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment variables & Secret files (NEVER COMMIT SECRETS)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.token
+credentials.json
+client_secret*.json
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Streamlit Local Runtime
+.streamlit/
+
+# Local task logs & scratch outputs
+*.log
+scratch/
+.system_generated/
+
+# Large model artifacts & local cache (can be regenerated)
+data/processed/*.pkl
+data/processed/*.tif

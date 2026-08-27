@@ -1,0 +1,6 @@
+mine_id,mine_name,district,mine_type,date,monthly_target_mt,predicted_production_mt,expected_shortfall_mt,shortfall_probability,risk_level,equipment_uptime_pct,maintenance_downtime_hrs,blasting_delays_count,haul_road_flooding_days,monthly_rainfall_mm,soil_moisture_index,mean_ndvi,land_surface_temp_c
+M01,Bharweli Mine,Balaghat,Underground,2024-12-01,30000,25340.7,4659.3,0.3643,MODERATE RISK,97.1,42.6,0,0,41.2,0.338,0.426,29.7
+M02,Dongri Buzurg Mine,Bhandara,Opencast,2024-12-01,25000,16786.2,8213.8,0.8532,HIGH RISK,88.7,20.3,2,0,4.6,0.281,0.445,29.7
+M03,Tirodi Mine,Balaghat,Opencast,2024-12-01,18000,11741.8,6258.2,0.9762,HIGH RISK,94.0,52.8,0,1,24.4,0.425,0.626,33.1
+M04,Chikla Mine,Bhandara,Underground,2024-12-01,15000,12043.6,2956.4,0.9887,HIGH RISK,89.3,38.0,0,0,19.5,0.259,0.406,29.1
+M05,Mansar Mine,Nagpur,Underground,2024-12-01,12000,8270.9,3729.1,0.9969,HIGH RISK,86.1,57.0,0,0,31.9,0.257,0.474,30.1
