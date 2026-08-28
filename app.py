@@ -4,6 +4,8 @@ Built for Smart India Hackathon 2026 • Ministry of Steel Prototype
 """
 
 import pickle
+import base64
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -24,113 +26,142 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for OreCast Dark Theme & Pastel Palette
+# Helper function to get base64 encoded local image
+def get_base64_image(image_path):
+    path = Path(image_path)
+    if path.exists():
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode("utf-8")
+    return ""
+
+bg_base64 = get_base64_image("assets/earth_bg.jpg")
+
+# Custom CSS for OreCast Dark Theme & Pastel Palette with Space/Earth Background
 # Palette: Sky Blue #AEC6CF, Blush Pink #F4C2C2, Pastel Yellow #FFF9A6, Muted Sage #C1E1C1, Soft Coral #FFB7B2
-st.markdown("""
+st.markdown(f"""
 <style>
-    /* Dark Theme Core Setup */
-    .stApp {
-        background-color: #0A0A0A;
+    /* Dark Theme Core Setup with Fixed Low-Orbit Earth Background */
+    .stApp {{
+        background-image: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), url("data:image/jpeg;base64,{bg_base64}");
+        background-size: cover;
+        background-position: center center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
         color: #F3F4F6;
-    }
+    }}
+    
+    [data-testid="stSidebar"] {{
+        background-color: rgba(10, 10, 10, 0.82) !important;
+        backdrop-filter: blur(12px);
+    }}
+    
+    [data-testid="stHeader"] {{
+        background-color: rgba(0, 0, 0, 0) !important;
+    }}
     
     /* Header Styling */
-    .brand-header {
+    .brand-header {{
         font-size: 2.5rem;
         font-weight: 800;
         color: #AEC6CF;
         letter-spacing: -0.02em;
         margin-bottom: 0.1rem;
-    }
-    .brand-tagline {
+        text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+    }}
+    .brand-tagline {{
         font-size: 1.05rem;
-        color: #D1D5DB;
+        color: #E5E7EB;
         margin-bottom: 1.5rem;
         font-weight: 400;
-    }
+        text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+    }}
     
     /* Metric Cards */
-    .metric-card-dark {
-        background-color: #141414;
-        border: 1px solid #262626;
+    .metric-card-dark {{
+        background-color: rgba(20, 20, 20, 0.85);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 8px;
         padding: 1.1rem;
         border-top: 3px solid #AEC6CF;
-    }
-    .stat-label-dark {
+        box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }}
+    .stat-label-dark {{
         font-size: 0.8rem;
-        color: #9CA3AF;
+        color: #D1D5DB;
         text-transform: uppercase;
         letter-spacing: 0.05em;
         font-weight: 600;
-    }
-    .stat-value-dark {
+    }}
+    .stat-value-dark {{
         font-size: 1.6rem;
         font-weight: 700;
         color: #FFFFFF;
         margin-top: 0.2rem;
-    }
+    }}
     
     /* Status Badges & Accents */
-    .text-sky { color: #AEC6CF; }
-    .text-sage { color: #C1E1C1; }
-    .text-yellow { color: #FFF9A6; }
-    .text-coral { color: #FFB7B2; }
-    .text-pink { color: #F4C2C2; }
+    .text-sky {{ color: #AEC6CF; }}
+    .text-sage {{ color: #C1E1C1; }}
+    .text-yellow {{ color: #FFF9A6; }}
+    .text-coral {{ color: #FFB7B2; }}
+    .text-pink {{ color: #F4C2C2; }}
     
-    .badge-sage {
-        background-color: rgba(193, 225, 193, 0.15);
+    .badge-sage {{
+        background-color: rgba(193, 225, 193, 0.20);
         color: #C1E1C1;
         padding: 4px 10px;
         border-radius: 4px;
         font-weight: 600;
-        border: 1px solid rgba(193, 225, 193, 0.3);
-    }
-    .badge-coral {
-        background-color: rgba(255, 183, 178, 0.15);
+        border: 1px solid rgba(193, 225, 193, 0.4);
+    }}
+    .badge-coral {{
+        background-color: rgba(255, 183, 178, 0.20);
         color: #FFB7B2;
         padding: 4px 10px;
         border-radius: 4px;
         font-weight: 600;
-        border: 1px solid rgba(255, 183, 178, 0.3);
-    }
-    .badge-yellow {
-        background-color: rgba(255, 249, 166, 0.15);
+        border: 1px solid rgba(255, 183, 178, 0.4);
+    }}
+    .badge-yellow {{
+        background-color: rgba(255, 249, 166, 0.20);
         color: #FFF9A6;
         padding: 4px 10px;
         border-radius: 4px;
         font-weight: 600;
-        border: 1px solid rgba(255, 249, 166, 0.3);
-    }
-    .badge-pink {
-        background-color: rgba(244, 194, 194, 0.15);
+        border: 1px solid rgba(255, 249, 166, 0.4);
+    }}
+    .badge-pink {{
+        background-color: rgba(244, 194, 194, 0.20);
         color: #F4C2C2;
         padding: 4px 10px;
         border-radius: 4px;
         font-weight: 600;
-        border: 1px solid rgba(244, 194, 194, 0.3);
-    }
+        border: 1px solid rgba(244, 194, 194, 0.4);
+    }}
     
     /* Operational Directive Card */
-    .directive-card {
-        background-color: #121212;
-        border: 1px solid #262626;
+    .directive-card {{
+        background-color: rgba(18, 18, 18, 0.85);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
         border-left: 4px solid #AEC6CF;
         border-radius: 6px;
         padding: 1.2rem;
         margin-bottom: 1.2rem;
-    }
-    .directive-card-high {
+        box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }}
+    .directive-card-high {{
         border-left: 4px solid #FFB7B2;
-    }
-    .directive-card-med {
+    }}
+    .directive-card-med {{
         border-left: 4px solid #FFF9A6;
-    }
+    }}
     
     /* Table & Container Fixes */
-    div[data-testid="stSidebarUserContent"] {
-        background-color: #0A0A0A;
-    }
+    div[data-testid="stSidebarUserContent"] {{
+        background-color: transparent;
+    }}
 </style>
 """, unsafe_allow_html=True)
 

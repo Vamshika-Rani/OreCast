@@ -130,13 +130,16 @@ Manganese Reserve detection/
 
 ---
 
-## Quickstart & Execution Guide
-
-### 1. Installation
-Clone the repository and install dependencies:
+### 1. One-Click Launch (Recommended)
+You only need **ONE command** to run the app:
 ```bash
-pip install -r requirements.txt
+streamlit run app.py
 ```
+*Or on Windows, simply double-click **[`run_app.bat`](file:///c:/Users/amoli/OneDrive/Desktop/Manganese%20Reserve%20detection/run_app.bat)**.*
+
+`app.py` automatically detects pre-computed models and data, loading everything instantly!
+
+---
 
 ### 2. Security & Environment Setup
 This repository is configured to keep API keys and environment credentials safe:
