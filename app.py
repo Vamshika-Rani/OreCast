@@ -42,17 +42,39 @@ st.markdown(f"""
 <style>
     /* Dark Theme Core Setup with Fixed Low-Orbit Earth Background */
     .stApp {{
-        background-image: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)), url("data:image/jpeg;base64,{bg_base64}");
+        background-image: linear-gradient(rgba(0, 0, 0, 0.60), rgba(0, 0, 0, 0.60)), url("data:image/jpeg;base64,{bg_base64}");
         background-size: cover;
         background-position: center center;
         background-attachment: fixed;
         background-repeat: no-repeat;
         color: #F3F4F6;
+        line-height: 1.65;
+        letter-spacing: 0.015em;
+    }}
+    
+    /* Typography & Legibility Overrides */
+    h1, h2, h3, h4, h5, h6 {{
+        line-height: 1.4 !important;
+        margin-top: 0.8rem !important;
+        margin-bottom: 0.75rem !important;
+        letter-spacing: -0.01em !important;
+    }}
+
+    p, span, label, div {{
+        line-height: 1.6 !important;
+    }}
+
+    .stCaption {{
+        font-size: 0.95rem !important;
+        line-height: 1.55 !important;
+        color: #E5E7EB !important;
+        margin-bottom: 1.2rem !important;
     }}
     
     [data-testid="stSidebar"] {{
-        background-color: rgba(10, 10, 10, 0.82) !important;
-        backdrop-filter: blur(12px);
+        background-color: rgba(10, 10, 10, 0.88) !important;
+        backdrop-filter: blur(14px);
+        padding-top: 1rem;
     }}
     
     [data-testid="stHeader"] {{
@@ -61,43 +83,48 @@ st.markdown(f"""
     
     /* Header Styling */
     .brand-header {{
-        font-size: 2.5rem;
+        font-size: 2.6rem;
         font-weight: 800;
         color: #AEC6CF;
         letter-spacing: -0.02em;
-        margin-bottom: 0.1rem;
-        text-shadow: 0 2px 10px rgba(0,0,0,0.7);
+        margin-bottom: 0.3rem;
+        line-height: 1.2 !important;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.8);
     }}
     .brand-tagline {{
-        font-size: 1.05rem;
+        font-size: 1.1rem;
         color: #E5E7EB;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.8rem;
         font-weight: 400;
-        text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+        line-height: 1.5 !important;
+        text-shadow: 0 1px 6px rgba(0,0,0,0.8);
     }}
     
     /* Metric Cards */
     .metric-card-dark {{
-        background-color: rgba(20, 20, 20, 0.85);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background-color: rgba(20, 20, 20, 0.88);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
         border-radius: 8px;
-        padding: 1.1rem;
+        padding: 1.25rem;
+        margin-bottom: 0.8rem;
         border-top: 3px solid #AEC6CF;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
     }}
     .stat-label-dark {{
-        font-size: 0.8rem;
-        color: #D1D5DB;
+        font-size: 0.85rem;
+        color: #E5E7EB;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.06em;
         font-weight: 600;
+        margin-bottom: 0.3rem;
     }}
     .stat-value-dark {{
-        font-size: 1.6rem;
+        font-size: 1.7rem;
         font-weight: 700;
         color: #FFFFFF;
-        margin-top: 0.2rem;
+        margin-top: 0.3rem;
+        line-height: 1.2 !important;
     }}
     
     /* Status Badges & Accents */
@@ -108,54 +135,70 @@ st.markdown(f"""
     .text-pink {{ color: #F4C2C2; }}
     
     .badge-sage {{
-        background-color: rgba(193, 225, 193, 0.20);
+        background-color: rgba(193, 225, 193, 0.22);
         color: #C1E1C1;
-        padding: 4px 10px;
-        border-radius: 4px;
+        padding: 5px 12px;
+        border-radius: 5px;
         font-weight: 600;
-        border: 1px solid rgba(193, 225, 193, 0.4);
+        line-height: 1.8 !important;
+        display: inline-block;
+        border: 1px solid rgba(193, 225, 193, 0.45);
     }}
     .badge-coral {{
-        background-color: rgba(255, 183, 178, 0.20);
+        background-color: rgba(255, 183, 178, 0.22);
         color: #FFB7B2;
-        padding: 4px 10px;
-        border-radius: 4px;
+        padding: 5px 12px;
+        border-radius: 5px;
         font-weight: 600;
-        border: 1px solid rgba(255, 183, 178, 0.4);
+        line-height: 1.8 !important;
+        display: inline-block;
+        border: 1px solid rgba(255, 183, 178, 0.45);
     }}
     .badge-yellow {{
-        background-color: rgba(255, 249, 166, 0.20);
+        background-color: rgba(255, 249, 166, 0.22);
         color: #FFF9A6;
-        padding: 4px 10px;
-        border-radius: 4px;
+        padding: 5px 12px;
+        border-radius: 5px;
         font-weight: 600;
-        border: 1px solid rgba(255, 249, 166, 0.4);
+        line-height: 1.8 !important;
+        display: inline-block;
+        border: 1px solid rgba(255, 249, 166, 0.45);
     }}
     .badge-pink {{
-        background-color: rgba(244, 194, 194, 0.20);
+        background-color: rgba(244, 194, 194, 0.22);
         color: #F4C2C2;
-        padding: 4px 10px;
-        border-radius: 4px;
+        padding: 5px 12px;
+        border-radius: 5px;
         font-weight: 600;
-        border: 1px solid rgba(244, 194, 194, 0.4);
+        line-height: 1.8 !important;
+        display: inline-block;
+        border: 1px solid rgba(244, 194, 194, 0.45);
     }}
     
     /* Operational Directive Card */
     .directive-card {{
-        background-color: rgba(18, 18, 18, 0.85);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-left: 4px solid #AEC6CF;
-        border-radius: 6px;
-        padding: 1.2rem;
-        margin-bottom: 1.2rem;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+        background-color: rgba(18, 18, 18, 0.88);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-left: 5px solid #AEC6CF;
+        border-radius: 8px;
+        padding: 1.4rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }}
+    .directive-card h4 {{
+        margin-bottom: 0.6rem !important;
+        line-height: 1.3 !important;
+    }}
+    .directive-card p {{
+        margin: 0.5rem 0 !important;
+        line-height: 1.6 !important;
     }}
     .directive-card-high {{
-        border-left: 4px solid #FFB7B2;
+        border-left: 5px solid #FFB7B2;
     }}
     .directive-card-med {{
-        border-left: 4px solid #FFF9A6;
+        border-left: 5px solid #FFF9A6;
     }}
     
     /* Table & Container Fixes */
@@ -351,11 +394,38 @@ def main():
                 ))
                 
             fig_map.update_layout(
-                height=650,
-                margin={"r":0,"t":40,"l":0,"b":0},
-                paper_bgcolor="#0A0A0A",
-                plot_bgcolor="#0A0A0A",
-                font=dict(color="#F3F4F6")
+                height=680,
+                margin={"r":10, "t":40, "l":10, "b":10},
+                paper_bgcolor="rgba(10, 10, 10, 0.85)",
+                plot_bgcolor="rgba(10, 10, 10, 0.85)",
+                font=dict(color="#F3F4F6", size=12),
+                legend=dict(
+                    yanchor="top",
+                    y=0.98,
+                    xanchor="right",
+                    x=0.98,
+                    bgcolor="rgba(15, 23, 42, 0.92)",
+                    bordercolor="rgba(255, 255, 255, 0.25)",
+                    borderwidth=1,
+                    font=dict(size=12, color="#FFFFFF"),
+                    itemsizing="constant",
+                    tracegroupgap=12
+                ),
+                coloraxis_colorbar=dict(
+                    title=dict(
+                        text="Manganese Ore Chance",
+                        side="top",
+                        font=dict(size=12, color="#FFFFFF")
+                    ),
+                    x=0.02,
+                    y=0.28,
+                    len=0.45,
+                    thickness=16,
+                    bgcolor="rgba(15, 23, 42, 0.92)",
+                    bordercolor="rgba(255, 255, 255, 0.25)",
+                    borderwidth=1,
+                    tickfont=dict(color="#FFFFFF", size=11)
+                )
             )
             st.plotly_chart(fig_map, use_container_width=True)
             
