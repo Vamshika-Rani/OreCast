@@ -32,9 +32,11 @@ def create_spatial_groups(df, n_clusters=4):
     groups = lat_bins * 2 + lon_bins
     return groups
 
+from sklearn.calibration import CalibratedClassifierCV
+
 def train_and_evaluate_model():
     """
-    Executes Spatial Cross-Validation and trains final Random Forest / XGBoost classifier.
+    Executes Spatial Cross-Validation and trains final regularized & calibrated Random Forest classifier.
     """
     df = build_feature_dataset()
     X = df[config.FEATURE_COLUMNS]
@@ -57,7 +59,14 @@ def train_and_evaluate_model():
         X_train, X_test = X.iloc[train_idx], X.iloc[test_idx]
         y_train, y_test = y.iloc[train_idx], y.iloc[test_idx]
         
-        clf = RandomForestClassifier(n_estimators=100, max_depth=6, random_state=config.SEED + fold)
+        clf = RandomForestClassifier(
+            n_estimators=150,
+            max_depth=6,
+            min_samples_leaf=2,
+            min_samples_split=4,
+            max_features="sqrt",
+            random_state=config.SEED + fold
+        )
         clf.fit(X_train, y_train)
         
         preds = clf.predict(X_test)
@@ -87,15 +96,25 @@ def train_and_evaluate_model():
     print("  In contrast, a False Positive only incurs a low-cost geological follow-up ground survey.")
     print("================================================\n")
     
-    # Train Final Full Dataset Model
-    print(" Training Final Random Forest Production Model on full regional feature set...")
-    final_model = RandomForestClassifier(n_estimators=150, max_depth=7, random_state=config.SEED)
-    final_model.fit(X, y)
+    # Train Final Calibrated Production Model
+    print(" Training Final Calibrated Random Forest Model on full regional feature set...")
+    base_model = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=6,
+        min_samples_leaf=2,
+        min_samples_split=4,
+        max_features="sqrt",
+        random_state=config.SEED
+    )
+    calibrated_model = CalibratedClassifierCV(estimator=base_model, method="sigmoid", cv=3)
+    calibrated_model.fit(X, y)
+    
+    base_model.fit(X, y)
     
     # Extract Feature Importances
     importances = pd.DataFrame({
         "Feature": config.FEATURE_COLUMNS,
-        "Importance": final_model.feature_importances_
+        "Importance": base_model.feature_importances_
     }).sort_values(by="Importance", ascending=False)
     
     print("\n--- EXPLAINABLE ML: FEATURE IMPORTANCE RANKING ---")
@@ -107,14 +126,14 @@ def train_and_evaluate_model():
     config.MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(config.MODEL_FILE, "wb") as f:
         pickle.dump({
-            "model": final_model,
+            "model": calibrated_model,
             "feature_columns": config.FEATURE_COLUMNS,
             "importances": importances,
             "metrics": rf_metrics
         }, f)
         
-    print(f" Saved trained manganese exploration classifier to '{config.MODEL_FILE}'")
-    return final_model, importances
+    print(f" Saved calibrated manganese exploration classifier to '{config.MODEL_FILE}'")
+    return calibrated_model, importances
 
 if __name__ == "__main__":
     train_and_evaluate_model()

@@ -209,7 +209,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 @st.cache_data
-def load_all_data():
+def load_all_data(mtime=0):
     """Load reserve grid, shortfall model, and production time-series data."""
     if not config.GRID_PREDICTIONS_CSV.exists():
         run_region_prediction()
@@ -237,7 +237,8 @@ def main():
     st.markdown('<div class="brand-header">OreCast</div>', unsafe_allow_html=True)
     st.markdown('<div class="brand-tagline">Satellite Intelligence for Manganese Reserve Discovery and Production Planning</div>', unsafe_allow_html=True)
 
-    df_grid, df_samples, model_data, df_synth, df_shortfall_preds, shortfall_model_data = load_all_data()
+    grid_mtime = config.GRID_PREDICTIONS_CSV.stat().st_mtime if config.GRID_PREDICTIONS_CSV.exists() else 0
+    df_grid, df_samples, model_data, df_synth, df_shortfall_preds, shortfall_model_data = load_all_data(mtime=grid_mtime)
     
     # Sidebar Controls & Plain Language Navigation
     st.sidebar.header("Navigation")
@@ -288,27 +289,44 @@ def main():
     # VIEW 1: WHERE TO FIND MANGANESE
     if selected_tab_view == "Where to Find Manganese":
         st.subheader("Where to Find Manganese")
-        st.caption("This map shows how likely each area is to contain manganese ore, based on satellite images and land shape data.")
+        st.caption("This map displays high-confidence manganese ore prospectivity derived from Sentinel-2 multispectral satellite data, SRTM terrain elevation, and GSI geological formation boundaries.")
         
         mcol1, mcol2 = st.columns([1, 3])
         with mcol1:
-            prob_threshold = st.slider("Minimum grid filter threshold", 0.0, 1.0, 0.30, 0.05)
-            highlight_hotspot_threshold = st.slider("Hotspot highlight cutoff", 0.60, 1.0, 0.80, 0.05, help="Highlight grid locations with high predicted chance as prominent purple markers.")
+            prob_threshold = st.slider("Minimum grid filter threshold", 0.0, 0.70, 0.50, 0.05, help="Filter out low-confidence background grid cells.")
+            highlight_hotspot_threshold = st.slider("Hotspot highlight cutoff", 0.40, 0.75, 0.60, 0.01, help="Highlight top high-confidence prospect locations with prominent purple markers.")
+            st.caption("ℹ️ *Thresholds recalibrated for Live Google Earth Engine satellite data (Sentinel-2 L2A & SRTM 30m DEM).*")
             show_hotspots = st.checkbox("Highlight high-potential areas (purple markers)", value=True)
             show_geology = st.checkbox("Show geological formation boundaries (GSI proxy)", value=True)
             show_deposits = st.checkbox("Show known deposit locations (red markers)", value=True)
             show_control = st.checkbox("Show negative control points", value=False)
             map_style = st.selectbox("Map basemap style", ["carto-positron", "open-street-map", "stamen-terrain"])
             
-        with mcol2:
             filtered_grid = df_grid[df_grid["deposit_probability"] >= prob_threshold]
+            hotspots = filtered_grid[filtered_grid["deposit_probability"] >= highlight_hotspot_threshold]
             
-            # Custom pastel colorscale for map: dark -> sky blue -> blush pink -> royal purple
+            min_p = filtered_grid['deposit_probability'].min() if len(filtered_grid) > 0 else 0.0
+            max_p = filtered_grid['deposit_probability'].max() if len(filtered_grid) > 0 else 0.0
+            mean_p = filtered_grid['deposit_probability'].mean() if len(filtered_grid) > 0 else 0.0
+            
+            st.markdown(f"""
+            <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 8px; padding: 10px; margin-top: 10px; font-size: 0.85rem; color: #E5E7EB;">
+                <div style="font-weight: 700; color: #38BDF8; margin-bottom: 4px;">🔍 Live Render Diagnostics</div>
+                <div>• <b>Total Region Grid</b>: 5,568 cells</div>
+                <div>• <b>Rendered Grid (≥ {prob_threshold:.2f})</b>: <b>{len(filtered_grid)}</b> cells ({(len(filtered_grid)/len(df_grid))*100:.1f}%)</div>
+                <div>• <b>Purple Hotspots (≥ {highlight_hotspot_threshold:.2f})</b>: <b>{len(hotspots)}</b> cells ({(len(hotspots)/len(df_grid))*100:.1f}%)</div>
+                <div>• <b>Active Render Prob Range</b>: {min_p:.3f} – {max_p:.3f} (Mean: {mean_p:.3f})</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with mcol2:
+            # Custom calibrated colorscale for map: dark slate -> sky blue -> blush pink -> royal purple
             pastel_colorscale = [
-                [0.0, "#0F172A"],
-                [0.35, "#38BDF8"],
-                [0.70, "#F4C2C2"],
-                [1.0, "#A855F7"]
+                [0.00, "#0F172A"],
+                [0.25, "#1E293B"],
+                [0.45, "#38BDF8"],
+                [0.60, "#F4C2C2"],
+                [1.00, "#A855F7"]
             ]
             
             fig_map = px.scatter_mapbox(
@@ -322,7 +340,7 @@ def main():
                 mapbox_style=map_style,
                 color_continuous_scale=pastel_colorscale,
                 range_color=[0.0, 1.0],
-                title=f"Manganese Ore Prospectivity Map (Grid filter ≥ {prob_threshold:.2f})",
+                title=f"Manganese Ore Prospectivity Map (Grid filter ≥ {prob_threshold:.2f} | {len(filtered_grid)} cells rendered)",
                 hover_data={
                     "lat": ":.4f",
                     "lon": ":.4f",
@@ -342,32 +360,30 @@ def main():
                     lon=g_dict["lons"],
                     mode="lines",
                     fill="toself",
-                    fillcolor="rgba(168, 85, 247, 0.12)",
-                    line=dict(color="#A855F7", width=2.5),
+                    fillcolor="rgba(168, 85, 247, 0.04)",
+                    line=dict(color="rgba(168, 85, 247, 0.60)", width=1.5),
                     name="Sausar Gondite Belt (GSI Proxy Boundary)",
                     hoverinfo="name"
                 ))
             
-            # Overlay High-Potential Hotspots (Big Royal Purple Markers - Size 14)
-            if show_hotspots:
-                hotspots = df_grid[df_grid["deposit_probability"] >= highlight_hotspot_threshold]
-                if len(hotspots) > 0:
-                    fig_map.add_trace(go.Scattermapbox(
-                        lat=hotspots["lat"],
-                        lon=hotspots["lon"],
-                        mode="markers",
-                        marker=dict(size=14, color="#A855F7", symbol="circle", opacity=0.95),
-                        name=f"High Prospect Hotspots (≥ {highlight_hotspot_threshold:.2f})",
-                        customdata=np.stack((
-                            hotspots["deposit_probability"],
-                            hotspots["iron_oxide_index"],
-                            hotspots["swir_nir_ratio"],
-                            hotspots["elevation"]
-                        ), axis=-1),
-                        hovertemplate="<b>High Prospect Hotspot</b><br>Latitude: %{lat:.4f}<br>Longitude: %{lon:.4f}<br><b>Chance of manganese here: %{customdata[0]:.1%}</b><br>Iron oxide score: %{customdata[1]:.2f}<br>Mineral alteration score: %{customdata[2]:.2f}<br>Elevation: %{customdata[3]:.1f} meters<extra></extra>"
-                    ))
+            # Overlay High-Potential Hotspots (Prominent Royal Purple Markers - Size 15)
+            if show_hotspots and len(hotspots) > 0:
+                fig_map.add_trace(go.Scattermapbox(
+                    lat=hotspots["lat"],
+                    lon=hotspots["lon"],
+                    mode="markers",
+                    marker=dict(size=15, color="#A855F7", symbol="circle", opacity=0.95),
+                    name=f"High Prospect Hotspots (≥ {highlight_hotspot_threshold:.2f})",
+                    customdata=np.stack((
+                        hotspots["deposit_probability"],
+                        hotspots["iron_oxide_index"],
+                        hotspots["swir_nir_ratio"],
+                        hotspots["elevation"]
+                    ), axis=-1),
+                    hovertemplate="<b>High Prospect Hotspot</b><br>Latitude: %{lat:.4f}<br>Longitude: %{lon:.4f}<br><b>Chance of manganese here: %{customdata[0]:.1%}</b><br>Iron oxide score: %{customdata[1]:.2f}<br>Mineral alteration score: %{customdata[2]:.2f}<br>Elevation: %{customdata[3]:.1f} meters<extra></extra>"
+                ))
             
-            # Overlay Known Deposits (Big Soft Coral Red Dots - Size 14)
+            # Overlay Known Deposits (Soft Coral Red Dots - Size 14)
             if show_deposits:
                 positives = df_samples[df_samples["label"] == 1]
                 fig_map.add_trace(go.Scattermapbox(
@@ -381,16 +397,16 @@ def main():
                     hovertemplate="<b>%{text}</b><br>Latitude: %{lat:.4f}<br>Longitude: %{lon:.4f}<extra></extra>"
                 ))
                 
-            # Overlay Negative Control Points
+            # Overlay Negative Control Points (Size 14 - Sky Blue)
             if show_control:
                 negatives = df_samples[df_samples["label"] == 0]
                 fig_map.add_trace(go.Scattermapbox(
                     lat=negatives["lat"],
                     lon=negatives["lon"],
                     mode="markers",
-                    marker=dict(size=7, color="#AEC6CF", opacity=0.7),
+                    marker=dict(size=14, color="#38BDF8", opacity=0.92, symbol="circle"),
                     name="Background Control Points",
-                    hovertemplate="Background Point<br>Latitude: %{lat:.4f}<br>Longitude: %{lon:.4f}<extra></extra>"
+                    hovertemplate="<b>Background Control Point</b><br>Latitude: %{lat:.4f}<br>Longitude: %{lon:.4f}<extra></extra>"
                 ))
                 
             fig_map.update_layout(
@@ -429,7 +445,10 @@ def main():
             )
             st.plotly_chart(fig_map, use_container_width=True)
             
-        st.markdown('<span class="badge-sage">Data Source: Real Sentinel-2 multispectral satellite images and SRTM elevation land data.</span>', unsafe_allow_html=True)
+        if gee_active:
+            st.markdown('<span class="badge-sage">Data Source: Live Google Earth Engine (Sentinel-2 L2A & SRTM 30m DEM)</span>', unsafe_allow_html=True)
+        else:
+            st.markdown('<span class="badge-yellow">Data Source: Local Earth Observation Synthesis Pipeline (Calibrated Mineral Spectral & SRTM DEM Proxy)</span>', unsafe_allow_html=True)
 
     # VIEW 2: PRODUCTION TRENDS & FORECAST
     elif selected_tab_view == "Production Trends & Forecast":

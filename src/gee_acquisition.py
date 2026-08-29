@@ -25,10 +25,14 @@ def initialize_gee():
         print("\n=======================================================", flush=True)
         print("          EARTH ENGINE INITIALIZATION REPORT           ", flush=True)
         print("=======================================================", flush=True)
-        if "no project found" in err_msg.lower():
+        if "not registered to use earth engine" in err_msg.lower():
+            print(f" Notice: Project '{project}' is not registered for Earth Engine yet.", flush=True)
+            print(f" Please register your project (1-click free registration):", flush=True)
+            print(f"   https://console.cloud.google.com/earth-engine/configuration?project={project}", flush=True)
+        elif "no project found" in err_msg.lower():
             print(" Notice: GEE API authenticated, but requires a Cloud Project ID.", flush=True)
             print(" To set up live Earth Engine project, set your GCP project ID:", flush=True)
-            print("   $env:GEE_PROJECT_ID='your-gcp-project-id'", flush=True)
+            print(f"   $env:GEE_PROJECT_ID='{project or 'your-gcp-project-id'}'", flush=True)
         else:
             print(f" Notice: GEE API check failed ({err_msg}).", flush=True)
             print(" To authenticate Google Earth Engine for live satellite data, run:", flush=True)
@@ -110,48 +114,59 @@ def fetch_satellite_data_for_points(df_points):
     print(" Extracting Sentinel-2 & DEM spectral values for sample points...", flush=True)
     np.random.seed(config.SEED)
     
+    # Deterministic hashing for grid locations to ensure reproducible lineament anomaly generation
+    def location_hash_rand(lat, lon):
+        val = np.sin(lat * 12.9898 + lon * 78.233) * 43758.5453
+        return val - np.floor(val)
+        
     for idx, row in df_points.iterrows():
         lat, lon = row["lat"], row["lon"]
         row_dict = row.to_dict()
         
-        # Check if row explicitly has label==1 or falls near Gondite belt trend (Balaghat-Bhandara ridge: ~21.5N-21.9N, 79.6E-80.4E)
         has_pos_label = ("label" in row and row["label"] == 1)
         
-        # Spatial geology signature simulation based on physical coordinates (Balaghat Gondite trend)
-        gondite_belt_proximity = np.exp(-((lat - 21.68)**2 / 0.08 + (lon - 79.95)**2 / 0.35))
+        # Spatial geology lineament signature: narrow fault lineament intersections (~2.5% geological rarity)
+        gondite_belt_proximity = np.exp(-((lat - 21.68)**2 / 0.06 + (lon - 79.95)**2 / 0.30))
+        spatial_noise = location_hash_rand(lat, lon)
         
-        if has_pos_label or (gondite_belt_proximity > 0.45 and np.random.rand() < 0.6):
-            # Gondite/Manganese Ore Zone Signature:
-            b2 = np.random.uniform(0.05, 0.08)
-            b3 = np.random.uniform(0.08, 0.12)
-            b4 = np.random.uniform(0.14, 0.20)
-            b8 = np.random.uniform(0.18, 0.26)
-            b11 = np.random.uniform(0.30, 0.42)
-            b12 = np.random.uniform(0.18, 0.25)
+        # Ore zone condition: positive label OR tight lineament intersection inside belt (2.5% rarity)
+        is_ore_anomaly = has_pos_label or (gondite_belt_proximity > 0.65 and spatial_noise > 0.975)
+        
+        if is_ore_anomaly:
+            # Gondite/Manganese Ore Zone Signature (High Iron Oxide, High SWIR/NIR Alteration, Resistant Ridge DEM)
+            b2 = np.random.uniform(0.05, 0.075)
+            b3 = np.random.uniform(0.08, 0.11)
+            b4 = np.random.uniform(0.15, 0.21)   # High Red -> High Iron Oxide (B4/B2)
+            b8 = np.random.uniform(0.18, 0.24)   # Lower NIR -> Chlorophyll dip / Exposed Rock
+            b11 = np.random.uniform(0.33, 0.43)  # High SWIR1 -> Strong SWIR/NIR ratio
+            b12 = np.random.uniform(0.16, 0.23)  # Moderate SWIR2 -> High Clay Index (B11/B12)
             
-            elev = 340.0 + gondite_belt_proximity * 160.0 + np.random.uniform(-20, 30)
-            slope = 8.0 + gondite_belt_proximity * 14.0 + np.random.uniform(-2, 5)
+            elev = 360.0 + gondite_belt_proximity * 140.0 + np.random.uniform(-15, 25)
+            slope = 10.0 + gondite_belt_proximity * 12.0 + np.random.uniform(-2, 4)
             aspect = np.random.uniform(0.0, 360.0)
         else:
-            # Control / Background Region Signature:
-            if np.random.rand() > 0.4:
-                b2 = np.random.uniform(0.03, 0.06)
-                b3 = np.random.uniform(0.06, 0.10)
-                b4 = np.random.uniform(0.05, 0.09)
-                b8 = np.random.uniform(0.30, 0.45)
-                b11 = np.random.uniform(0.15, 0.24)
-                b12 = np.random.uniform(0.08, 0.14)
-                elev = np.random.uniform(220.0, 320.0)
-                slope = np.random.uniform(1.0, 6.0)
+            # Background Host Rock, Soil, & Forest Signature (Normal B11, Moderate SWIR/NIR, Low-to-Moderate Slope)
+            rand_type = np.random.rand()
+            if rand_type > 0.5:
+                # Vegetated / Agricultural Plain Signature
+                b2 = np.random.uniform(0.04, 0.065)
+                b3 = np.random.uniform(0.07, 0.10)
+                b4 = np.random.uniform(0.05, 0.085)
+                b8 = np.random.uniform(0.32, 0.46)   # Strong NIR (Vegetation)
+                b11 = np.random.uniform(0.16, 0.24)  # Normal SWIR1
+                b12 = np.random.uniform(0.09, 0.14)
+                elev = np.random.uniform(230.0, 320.0)
+                slope = np.random.uniform(1.0, 5.5)
             else:
-                b2 = np.random.uniform(0.08, 0.11)
-                b3 = np.random.uniform(0.11, 0.15)
-                b4 = np.random.uniform(0.12, 0.16)
-                b8 = np.random.uniform(0.19, 0.24)
+                # Weathered Soil / Barren Plain Signature
+                b2 = np.random.uniform(0.07, 0.10)
+                b3 = np.random.uniform(0.10, 0.14)
+                b4 = np.random.uniform(0.11, 0.15)
+                b8 = np.random.uniform(0.20, 0.26)
                 b11 = np.random.uniform(0.20, 0.27)
-                b12 = np.random.uniform(0.16, 0.22)
-                elev = np.random.uniform(250.0, 360.0)
-                slope = np.random.uniform(2.0, 9.0)
+                b12 = np.random.uniform(0.15, 0.21)
+                elev = np.random.uniform(240.0, 350.0)
+                slope = np.random.uniform(2.0, 8.0)
             aspect = np.random.uniform(0.0, 360.0)
             
         row_dict.update({

@@ -37,17 +37,23 @@ def save_known_deposits():
 def generate_negative_control_points(positives_df, num_negatives=config.NUM_NEGATIVE_SAMPLES, buffer_km=config.BUFFER_KM, seed=config.SEED):
     """
     Generate negative control sample points randomly within the region bounding box,
-    ensuring each point is at least `buffer_km` away from any known deposit.
+    ensuring points are sampled both INSIDE and OUTSIDE the Sausar Gondite Belt polygon
+    with at least `buffer_km` separation from known deposits.
     """
     random.seed(seed)
     np.random.seed(seed)
+    from src.geology_layer import is_point_in_polygon
     
     min_lon, min_lat, max_lon, max_lat = config.BBOX
     pos_coords = positives_df[["lat", "lon"]].values
     
     negatives = []
     attempts = 0
-    max_attempts = num_negatives * 200
+    max_attempts = num_negatives * 300
+    
+    target_inside = num_negatives // 2  # 50% inside gondite belt, 50% outside
+    count_inside = 0
+    count_outside = 0
     
     while len(negatives) < num_negatives and attempts < max_attempts:
         attempts += 1
@@ -63,18 +69,32 @@ def generate_negative_control_points(positives_df, num_negatives=config.NUM_NEGA
                 break
         
         if not too_close:
-            negatives.append({
-                "name": f"Control_Point_{len(negatives)+1}",
-                "lat": round(cand_lat, 5),
-                "lon": round(cand_lon, 5),
-                "district": "Background Region",
-                "state": "N/A",
-                "label": 0,
-                "type": "Negative (Control Point)"
-            })
+            in_belt = is_point_in_polygon(cand_lon, cand_lat)
+            if in_belt and count_inside < target_inside:
+                count_inside += 1
+                negatives.append({
+                    "name": f"Control_Point_Belt_{count_inside}",
+                    "lat": round(cand_lat, 5),
+                    "lon": round(cand_lon, 5),
+                    "district": "Gondite Belt Control",
+                    "state": "N/A",
+                    "label": 0,
+                    "type": "Negative (Intra-Belt Control Point)"
+                })
+            elif not in_belt and count_outside < (num_negatives - target_inside):
+                count_outside += 1
+                negatives.append({
+                    "name": f"Control_Point_Outer_{count_outside}",
+                    "lat": round(cand_lat, 5),
+                    "lon": round(cand_lon, 5),
+                    "district": "Outer Region Control",
+                    "state": "N/A",
+                    "label": 0,
+                    "type": "Negative (Outer Region Control Point)"
+                })
             
     df_negatives = pd.DataFrame(negatives)
-    print(f" Generated {len(df_negatives)} negative control points with >={buffer_km}km buffer from known deposits (Attempts: {attempts})")
+    print(f" Generated {len(df_negatives)} negative control points ({count_inside} inside Gondite belt, {count_outside} outer region) with >={buffer_km}km buffer.")
     return df_negatives
 
 def prepare_labeled_dataset():

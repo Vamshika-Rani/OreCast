@@ -26,8 +26,8 @@ try:
 except ImportError:
     pass
 
-# Google Earth Engine Project Configuration (read cleanly from environment, no hardcoded secrets)
-GEE_PROJECT_ID = os.getenv("GEE_PROJECT_ID", "")
+# Google Earth Engine Project Configuration
+GEE_PROJECT_ID = os.getenv("GEE_PROJECT_ID", "orecast-507007")
 
 # Date range for satellite composite (dry season preferred for low cloud/vegetation cover)
 DATE_START = "2024-01-01"
