@@ -1,4 +1,4 @@
-# OreCast
+Cast
 
 > **Satellite Intelligence for Manganese Reserve Discovery and Production Planning**  
 > Smart India Hackathon (SIH) 2026 • Ministry of Steel Problem Statement Prototype  
